@@ -40,11 +40,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Formulaire inscription – simulation envoi (message console + alerte)
+    // ========== إرسال النموذج عبر Formspree ==========
     const form = document.getElementById('accessForm');
     if (form) {
-        form.addEventListener('submit', function(e) {
+        // الرابط الحقيقي من Formspree
+        const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xaqvrdek';
+        
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
             const prenom = document.getElementById('parentFirstName').value.trim();
             const nom = document.getElementById('parentLastName').value.trim();
             const email = document.getElementById('parentEmail').value.trim();
@@ -58,10 +62,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Adresse email invalide.');
                 return;
             }
-            // Simuler l'envoi
-            console.log('Demande test gratuit :', { prenom, nom, email, phone });
-            alert(`Merci ${prenom} ! Un conseiller Yool vous contactera sous 48h avec les détails du test gratuit.`);
-            form.reset();
+            
+            // تعطيل الزر أثناء الإرسال
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'جاري الإرسال...';
+            
+            try {
+                const response = await fetch(FORMSPREE_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prenom_parent: prenom,
+                        nom_parent: nom,
+                        email_parent: email,
+                        telephone_parent: phone,
+                        _subject: `Nouvelle inscription YooLex - ${prenom} ${nom}`
+                    })
+                });
+                
+                if (response.ok) {
+                    alert(`Merci ${prenom} ! Un conseiller Yool vous contactera sous 48h avec les détails du test gratuit.`);
+                    form.reset();
+                } else {
+                    const errorData = await response.json();
+                    console.error('Formspree error:', errorData);
+                    alert('Une erreur est survenue. Veuillez réessayer ou nous contacter directement.');
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert('Erreur de connexion. Vérifiez votre connexion internet.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+            }
         });
     }
     
